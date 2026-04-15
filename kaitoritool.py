@@ -86,32 +86,71 @@ with tab_search:
                 daily_trend = data_for_chart.groupby('日期')['数量'].sum().reset_index()
                 
                 st.subheader("📈 每日销售趋势")
-                st.line_chart(daily_trend.set_index('日期'))
+                st.bar_chart(daily_trend.set_index('日期'))
                 
                 # --- 分页汇总：周、月、年 ---
-                st.write("### 📊 周期统计汇总")
-                tab_week, tab_month, tab_year = st.tabs(["周汇总", "月汇总", "年汇总"])
+                st.write("### 📊 销售周期分析")
+                tab_week, tab_month, tab_year = st.tabs(["📅 周汇总", "📅 月汇总", "📅 年汇总"])
                 
                 # 设置时间索引方便重采样
+                # 注意：这里假设你数据库里的列名分别是 "数量" 和 "単価"
                 data_indexed = data.set_index('注文日時')
                 
                 with tab_week:
-                    week_res = data_indexed['数量'].resample('W').sum().reset_index()
-                    st.table(week_res.rename(columns={'注文日時': '周截止日期', '数量': '销售总数'}))
-                    
+                    # 1. 聚合数据 (W = 周)
+                    # .agg 可以让我们对不同列做不同的计算
+                    week_res = data_indexed.resample('W').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
+    
+                    # 2. 这里的柱状图会随周切换变化
+                    st.subheader("🗓️ 周销售趋势")
+                    st.bar_chart(week_res.set_index('注文日時')['数量'])
+    
+                    # 3. 表格追加单价列
+                    st.write("**周明细表 (单价为周期内平均值)**")
+                    week_table = week_res.rename(columns={
+                        '注文日時': '周截止日期', 
+                        '数量': '销售总数', 
+                        '単価': '平均単価'
+                    })
+                    # 格式化单价：保留整数或两位小数
+                    week_table['平均単価'] = week_table['平均単価'].map('¥{:,.0f}'.format)
+                    st.table(week_table)
+
                 with tab_month:
-                    # 💡 核心修改：把 'M' 改成 'ME'
-                    month_res = data_indexed['数量'].resample('ME').sum().reset_index()
-                    # 为了表格好看，我们可以把日期只保留到月份
+                    # 1. 聚合数据 (ME = 月末)
+                    month_res = data_indexed.resample('ME').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
+    
+                    # 2. 月柱状图
+                    st.subheader("🗓️ 月销售趋势")
+                    st.bar_chart(month_res.set_index('注文日時')['数量'])
+    
+                    # 3. 表格处理
                     month_res['注文日時'] = month_res['注文日時'].dt.strftime('%Y-%m')
-                    st.table(month_res.rename(columns={'注文日時': '月份', '数量': '销售总数'}))
+                    month_table = month_res.rename(columns={
+                        '注文日時': '月份', 
+                        '数量': '销售总数', 
+                        '単価': '平均単価'
+                    })
+                    month_table['平均単価'] = month_table['平均単価'].map('¥{:,.0f}'.format)
+                    st.table(month_table)
                     
                 with tab_year:
-                    # 💡 核心修改：把 'A' 改成 'YE'
-                    year_res = data_indexed['数量'].resample('YE').sum().reset_index()
-                    # 为了表格好看，我们可以把日期只保留到年份
+                    # 1. 聚合数据 (YE = 年末)
+                    year_res = data_indexed.resample('YE').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
+    
+                    # 2. 年柱状图
+                    st.subheader("🗓️ 年销售趋势")
+                    st.bar_chart(year_res.set_index('注文日時')['数量'])
+    
+                    # 3. 表格处理
                     year_res['注文日時'] = year_res['注文日時'].dt.strftime('%Y')
-                    st.table(year_res.rename(columns={'注文日時': '年份', '数量': '销售总数'}))
+                    year_table = year_res.rename(columns={
+                        '注文日時': '年份', 
+                        '数量': '销售总数', 
+                        '単価': '平均単価'
+                    })
+                    year_table['平均単価'] = year_table['平均単価'].map('¥{:,.0f}'.format)
+                    st.table(year_table)
             
             else:
                 st.warning("⚠️ 没找到匹配的订单，请检查筛选条件或 JAN 码是否正确。")
