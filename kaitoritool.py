@@ -32,6 +32,7 @@ if page == "数据上传":
             df = pd.read_csv(uploaded_file, encoding='shift_jis', dtype=column_types)
         except:
             df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=column_types)
+            df = df.fillna('')
             
         st.write("预览上传的数据：", df.head())
         
