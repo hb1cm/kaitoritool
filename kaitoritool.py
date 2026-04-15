@@ -161,11 +161,17 @@ elif page == "销售分析搜索":
                     st.table(week_res.rename(columns={'注文日時': '周截止日期', '数量': '销售总数'}))
                     
                 with tab_month:
-                    month_res = data_indexed['数量'].resample('M').sum().reset_index()
+                    # 💡 核心修改：把 'M' 改成 'ME'
+                    month_res = data_indexed['数量'].resample('ME').sum().reset_index()
+                    # 为了表格好看，我们可以把日期只保留到月份
+                    month_res['注文日時'] = month_res['注文日時'].dt.strftime('%Y-%m')
                     st.table(month_res.rename(columns={'注文日時': '月份', '数量': '销售总数'}))
                     
                 with tab_year:
-                    year_res = data_indexed['数量'].resample('A').sum().reset_index()
+                    # 💡 核心修改：把 'A' 改成 'YE'
+                    year_res = data_indexed['数量'].resample('YE').sum().reset_index()
+                    # 为了表格好看，我们可以把日期只保留到年份
+                    year_res['注文日時'] = year_res['注文日時'].dt.strftime('%Y')
                     st.table(year_res.rename(columns={'注文日時': '年份', '数量': '销售总数'}))
             
             else:
