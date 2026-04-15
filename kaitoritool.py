@@ -82,75 +82,69 @@ with tab_search:
                 
 
                 
-                # --- 分页汇总：日、月、年 ---
+# --- 📊 销售周期分析 (精修版) ---
                 st.write("### 📊 销售周期分析")
-                # 1. 修改标签为“日汇总”
                 tab_day, tab_month, tab_year = st.tabs(["📅 日汇总", "📅 月汇总", "📅 年汇总"])
                 
                 data_indexed = data.set_index('注文日時')
                 
+                # --- 1. 日汇总 ---
                 with tab_day:
                     st.subheader("🗓️ 每日销售详情")
-                    # 按天汇总
                     day_res = data_indexed.resample('D').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
-                    day_res = day_res[day_res['数量'] > 0] # 只显示有销量的日子
-                    chart_data = day_res.copy()
-                    chart_data['日期标签'] = chart_data['注文日時'].dt.strftime('%m-%d')
+                    day_res = day_res[day_res['数量'] > 0]
                     
-                    st.bar_chart(chart_data.set_index('日期标签')['数量'])
-                    
-                    # 布局：让表格窄一点，方便对齐阅读
+                    # 宽度限制：表格占 2/3
                     col_table, _ = st.columns([2, 1])
                     with col_table:
-                        day_table = day_res.rename(columns={
-                            '注文日時': '日期', 
-                            '数量': '销售总数', 
-                            '単価': '平均単価'
-                        })
+                        day_table = day_res.rename(columns={'注文日時': '日期', '数量': '销售总数', '単価': '平均単価'})
                         day_table['日期'] = day_table['日期'].dt.strftime('%Y-%m-%d')
                         day_table['平均単価'] = day_table['平均単価'].map('¥{:,.0f}'.format)
-                        
-                        # --- 核心修改：调整列顺序，让“销售总数”排第一 ---
-                        day_table = day_table[['日期', '销售总数', '平均単価']]
+                        # 调整列顺序：总数在前
+                        day_table = day_table[['销售总数', '日期', '平均単価']]
                         st.dataframe(day_table, hide_index=True, use_container_width=True)
+                    
+                    # 柱状图放在下面，默认打开
+                    st.write("📉 **每日趋势图**")
+                    chart_day = day_res.copy()
+                    chart_day['日期标签'] = chart_day['注文日時'].dt.strftime('%m-%d')
+                    st.bar_chart(chart_day.set_index('日期标签')['数量'])
 
+                # --- 2. 月汇总 ---
                 with tab_month:
-                    st.subheader("🗓️ 月销售趋势")
+                    st.subheader("🗓️ 月销售详情")
                     month_res = data_indexed.resample('ME').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
-                    st.bar_chart(month_res.set_index('注文日時')['数量'])
                     
                     col_table, _ = st.columns([2, 1])
                     with col_table:
-                        month_table = month_res.rename(columns={
-                            '注文日時': '月份', 
-                            '数量': '销售总数', 
-                            '単価': '平均単価'
-                        })
+                        month_table = month_res.rename(columns={'注文日時': '月份', '数量': '销售总数', '単価': '平均単価'})
                         month_table['月份'] = month_table['月份'].dt.strftime('%Y-%m')
                         month_table['平均単価'] = month_table['平均単価'].map('¥{:,.0f}'.format)
-                        
-                        # 调整列顺序
-                        month_table = month_table[['月份', '销售总数', '平均単価']]
+                        month_table = month_table[['销售总数', '月份', '平均単価']]
                         st.dataframe(month_table, hide_index=True, use_container_width=True)
                     
+                    st.write("📉 **每月趋势图**")
+                    chart_month = month_res.copy()
+                    chart_month['月份标签'] = chart_month['注文日時'].dt.strftime('%Y-%m')
+                    st.bar_chart(chart_month.set_index('月份标签')['数量'])
+
+                # --- 3. 年汇总 ---
                 with tab_year:
-                    st.subheader("🗓️ 年销售趋势")
+                    st.subheader("🗓️ 年销售详情")
                     year_res = data_indexed.resample('YE').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
-                    st.bar_chart(year_res.set_index('注文日時')['数量'])
                     
                     col_table, _ = st.columns([2, 1])
                     with col_table:
-                        year_table = year_res.rename(columns={
-                            '注文日時': '年份', 
-                            '数量': '销售总数', 
-                            '単価': '平均単価'
-                        })
+                        year_table = year_res.rename(columns={'注文日時': '年份', '数量': '销售总数', '単価': '平均単価'})
                         year_table['年份'] = year_table['年份'].dt.strftime('%Y')
                         year_table['平均単価'] = year_table['平均単価'].map('¥{:,.0f}'.format)
-                        
-                        # 调整列顺序
-                        year_table = year_table[['年份', '销售总数', '平均単価']]
+                        year_table = year_table[['销售总数', '年份', '平均単価']]
                         st.dataframe(year_table, hide_index=True, use_container_width=True)
+                    
+                    st.write("📉 **年度总计图**")
+                    chart_year = year_res.copy()
+                    chart_year['年份标签'] = chart_year['注文日時'].dt.strftime('%Y')
+                    st.bar_chart(chart_year.set_index('年份标签')['数量'])
             
             else:
                 st.warning("⚠️ 没找到匹配的订单，请检查筛选条件或 JAN 码是否正确。")
