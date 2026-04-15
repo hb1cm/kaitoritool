@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
-from supabase import create_client
+from supabase import create_client, Client
 import datetime
 
 # --- 初始化 Supabase 连接 ---
-url = "你的SUPABASE_URL"
-key = "你的SUPABASE_KEY"
-supabase = create_client(url, key)
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(url, key)
 
 st.set_page_config(page_title="買取数据分析助手", layout="wide")
 
