@@ -14,70 +14,8 @@ st.set_page_config(page_title="買取数据分析助手", layout="wide")
 # 把“销售分析搜索”放在第一个，它就会成为默认打开的页面
 tab_search, tab_upload = st.tabs(["🔍 销售详情搜索", "📦 数据上传"])
 
-# --- 分页1：数据上传 ---
-if page == "数据上传":
-    st.header("📦 订单数据上传")
-    uploaded_file = st.file_uploader("请选择原始 CSV 文件", type="csv")
-    
-    if uploaded_file is not None:
-        # --- 核心修改 1：指定 dtype，保住前面的 0 ---
-        # 我们把 管理番号、JANコード、商品コード 都强制设为字符串
-        column_types = {
-            '管理番号': str,
-            'JANコード': str,
-            '商品コード': str
-        }
-        
-        try:
-            # 读取时加入 dtype 参数
-            df = pd.read_csv(uploaded_file, encoding='shift_jis', dtype=column_types)
-        except:
-            df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=column_types)
-        
-        df = df.fillna('')
-            
-        st.write("预览上传的数据：", df.head())
-        
-        if st.button("🚀 一键同步到数据库"):
-            # 准备数据
-            # 这里的字段名要对应你 Supabase 表里的英文/中文列名
-            # 如果你数据库是英文列名，记得在这里做一个映射映射 (rename)
-            rows = df.to_dict('records')
-            total_rows = len(rows)
-            
-            # --- 核心修改 2：添加进度条 ---
-            progress_bar = st.progress(0) # 初始化进度条
-            status_text = st.empty()      # 用来显示当前的进度文字
-            
-            # 分批上传（每批 50 条，避免请求太重导致报错）
-            batch_size = 50
-            success = True
-            
-            for i in range(0, total_rows, batch_size):
-                batch = rows[i : i + batch_size]
-                
-                # 执行上传
-                try:
-                    # 替换为你的表名
-                    supabase.table("order").insert(batch).execute()
-                    
-                    # 更新进度条
-                    current_progress = min((i + batch_size) / total_rows, 1.0)
-                    progress_bar.progress(current_progress)
-                    status_text.text(f"正在上传：{min(i + batch_size, total_rows)} / {total_rows} 条数据...")
-                    
-                except Exception as e:
-                    st.error(f"上传出错啦：{e}")
-                    success = False
-                    break
-            
-            if success:
-                progress_bar.empty() # 完成后隐藏进度条
-                status_text.text("✅ 所有数据已成功同步！")
-                st.balloons() # 撒花庆祝一下！
-
-# --- 分页2：销售分析搜索 ---
-elif page == "销售分析搜索":
+# 1. 销售分析搜索 (默认页面)
+with tab_search:
     st.header("🔍 销售详情搜索")
     
     # 1. 定义固定的店铺列表
@@ -182,3 +120,65 @@ elif page == "销售分析搜索":
             # 捕获并显示具体错误，方便咱们排查问题
             st.error("🚨 搜索出错啦！")
             st.code(str(e))
+
+# 2. 数据上传
+with tab_upload:
+    st.header("📦 订单数据上传")
+    uploaded_file = st.file_uploader("请选择原始 CSV 文件", type="csv")
+    
+    if uploaded_file is not None:
+        # --- 核心修改 1：指定 dtype，保住前面的 0 ---
+        # 我们把 管理番号、JANコード、商品コード 都强制设为字符串
+        column_types = {
+            '管理番号': str,
+            'JANコード': str,
+            '商品コード': str
+        }
+        
+        try:
+            # 读取时加入 dtype 参数
+            df = pd.read_csv(uploaded_file, encoding='shift_jis', dtype=column_types)
+        except:
+            df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=column_types)
+        
+        df = df.fillna('')
+            
+        st.write("预览上传的数据：", df.head())
+        
+        if st.button("🚀 一键同步到数据库"):
+            # 准备数据
+            # 这里的字段名要对应你 Supabase 表里的英文/中文列名
+            # 如果你数据库是英文列名，记得在这里做一个映射映射 (rename)
+            rows = df.to_dict('records')
+            total_rows = len(rows)
+            
+            # --- 核心修改 2：添加进度条 ---
+            progress_bar = st.progress(0) # 初始化进度条
+            status_text = st.empty()      # 用来显示当前的进度文字
+            
+            # 分批上传（每批 50 条，避免请求太重导致报错）
+            batch_size = 50
+            success = True
+            
+            for i in range(0, total_rows, batch_size):
+                batch = rows[i : i + batch_size]
+                
+                # 执行上传
+                try:
+                    # 替换为你的表名
+                    supabase.table("order").insert(batch).execute()
+                    
+                    # 更新进度条
+                    current_progress = min((i + batch_size) / total_rows, 1.0)
+                    progress_bar.progress(current_progress)
+                    status_text.text(f"正在上传：{min(i + batch_size, total_rows)} / {total_rows} 条数据...")
+                    
+                except Exception as e:
+                    st.error(f"上传出错啦：{e}")
+                    success = False
+                    break
+            
+            if success:
+                progress_bar.empty() # 完成后隐藏进度条
+                status_text.text("✅ 所有数据已成功同步！")
+                st.balloons() # 撒花庆祝一下！
