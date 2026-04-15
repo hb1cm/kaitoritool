@@ -94,8 +94,10 @@ with tab_search:
                     # 按天汇总
                     day_res = data_indexed.resample('D').agg({'数量': 'sum', '単価': 'mean'}).reset_index()
                     day_res = day_res[day_res['数量'] > 0] # 只显示有销量的日子
+                    chart_data = day_res.copy()
+                    chart_data['日期标签'] = chart_data['注文日時'].dt.strftime('%m-%d')
                     
-                    st.bar_chart(day_res.set_index('注文日時')['数量'])
+                    st.bar_chart(chart_data.set_index('日期标签')['数量'])
                     
                     # 布局：让表格窄一点，方便对齐阅读
                     col_table, _ = st.columns([2, 1])
@@ -109,7 +111,7 @@ with tab_search:
                         day_table['平均単価'] = day_table['平均単価'].map('¥{:,.0f}'.format)
                         
                         # --- 核心修改：调整列顺序，让“销售总数”排第一 ---
-                        day_table = day_table[['销售总数', '日期', '平均単価']]
+                        day_table = day_table[['日期', '销售总数', '平均単価']]
                         st.dataframe(day_table, hide_index=True, use_container_width=True)
 
                 with tab_month:
@@ -128,7 +130,7 @@ with tab_search:
                         month_table['平均単価'] = month_table['平均単価'].map('¥{:,.0f}'.format)
                         
                         # 调整列顺序
-                        month_table = month_table[['销售总数', '月份', '平均単価']]
+                        month_table = month_table[['月份', '销售总数', '平均単価']]
                         st.dataframe(month_table, hide_index=True, use_container_width=True)
                     
                 with tab_year:
@@ -147,7 +149,7 @@ with tab_search:
                         year_table['平均単価'] = year_table['平均単価'].map('¥{:,.0f}'.format)
                         
                         # 调整列顺序
-                        year_table = year_table[['销售总数', '年份', '平均単価']]
+                        year_table = year_table[['年份', '销售总数', '平均単価']]
                         st.dataframe(year_table, hide_index=True, use_container_width=True)
             
             else:
