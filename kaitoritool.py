@@ -23,6 +23,36 @@ def get_shouten_data(jan):
     try:
         response = requests.get(search_url, params=params, headers=headers, timeout=10)
         
+        # --- 调试：在网页上直接显示状态 ---
+        st.write(f"调试信息：状态码 = {response.status_code}")
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+            rows = soup.select("tr.price_list_item") 
+            st.write(f"调试信息：找到商品行数 = {len(rows)}")
+            
+            if not rows:
+                # 如果没找到行，把网页的前 500 个字打印出来看看对方吐了什么
+                st.text("网页内容预览（前500字）：")
+                st.code(response.text[:500])
+                
+            res_list = []
+            for row in rows:
+                cols = row.find_all("td")
+                if len(cols) >= 2:
+                    name = cols[1].get_text(strip=True)
+                    price_tag = row.select_one(".item-price")
+                    price = price_tag.get_text(strip=True) if price_tag else "要相談"
+                    res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
+            return res_list
+        return None
+    except Exception as e:
+        st.error(f"发生异常：{str(e)}")
+        return None
+
+    try:
+        response = requests.get(search_url, params=params, headers=headers, timeout=10)
+        
         # 只要状态码在 200-299 之间，我们都试着解析一下
         if response.status_code in [200, 202]:
             soup = BeautifulSoup(response.text, "html.parser")
