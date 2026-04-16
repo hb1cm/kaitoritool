@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 import datetime
+import requests  # 新增：用于发送网络请求
+from bs4 import BeautifulSoup  # 新增：用于解析网页内容
 
 # --- 初始化 Supabase 连接 ---
 url = st.secrets["SUPABASE_URL"]
@@ -9,6 +11,36 @@ key = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(url, key)
 
 st.set_page_config(page_title="買取データ分析アシスタント", layout="wide")
+
+def get_shouten_data(jan):
+    """
+    買取商店のサイトから直接データを取得する関数
+    """
+    search_url = "https://www.kaitorishouten-co.jp/products/list"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Referer": "https://www.kaitorishouten-co.jp/"
+    }
+    # 这里的 mode=search 是破解 404 的关键
+    params = {"mode": "search", "name": jan}
+
+    try:
+        response = requests.get(search_url, params=params, headers=headers, timeout=10)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, "html.parser")
+            products = soup.select(".product-item") # 查找商品块
+            
+            res_list = []
+            for p in products:
+                name = p.select_one(".name").get_text(strip=True) if p.select_one(".name") else "不明"
+                # 尝试抓取价格标签
+                price_tag = p.select_one(".price_val") or p.select_one(".price")
+                price = price_tag.get_text(strip=True) if price_tag else "要相談"
+                res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
+            return res_list
+        return None
+    except:
+        return None
 
 # --- 顶部导航栏设置 ---
 # 修复点：左侧增加了 tab_compare，确保变量数量与右侧列表一致
@@ -170,19 +202,34 @@ with tab_search:
 # --- 2. 💰 競合価格比較 (新分页) ---
 with tab_compare:
     st.header("💰 競合価格リアルタイム比較")
-    st.info("💡 JANコードを入力すると、主要買取サイトの検索結果へ直接アクセスできます。")
+    st.info("💡 JANコードを入力すると、自動で価格を取得し、他サイトへのリンクも生成します。")
     
     compare_jan = st.text_input("検索する JANコード を入力してください", placeholder="例: 4549995663167")
     
     if compare_jan:
         st.write(f"### 🎯 検索対象: `{compare_jan}`")
         
+        # --- 🏮 買取商店の自動取得セクション ---
+        with st.spinner('🏮 買取商店からデータを取得中...'):
+            shouten_results = get_shouten_data(compare_jan)
+            
+        if shouten_results:
+            st.subheader("🏮 買取商店 の最新買取価格")
+            # 用 dataframe 展示抓取到的实时数据
+            st.dataframe(pd.DataFrame(shouten_results), hide_index=True, use_container_width=True)
+        else:
+            st.warning("🏮 買取商店 の自動取得に失敗しました。以下のボタンで直接確認してください。")
+            st.link_button("🏮 買取商店 で直接検索", f"https://www.kaitorishouten-co.jp/products/list?mode=search&name={compare_jan}")
+
+        st.divider()
+        
+        # --- 🌐 他サイトへのクイックリンク ---
+        st.write("### 🔗 他サイトの検索リンク")
         links = {
-            "🏮 買取商店": f"https://www.kaitorishouten-co.jp/products/list?name={compare_jan}",
             "🌐 買取Wiki": f"https://gamekaitori.jp/search?type=&q={compare_jan}#searchtop",
-            "📦 森森買取": f"https://www.morimori-kaitori.jp/search?sk={compare_jan}",
-            # "📱 じゃんぱら (Janpara)": f"https://www.janpara.co.jp/buy/search/result/?ORDER=1&KEYWORD={compare_jan}",
-            # "💻 イオシス (Iosys)": f"https://k-tai-iosys.com/search?q={compare_jan}",
+            "📦 森森買取": f"https://www.mori-mori.jp/search/?keyword={compare_jan}",
+            "📱 じゃんぱら": f"https://www.janpara.co.jp/buy/search/result/?KEYWORD={compare_jan}&ORDER=1",
+            "💻 イオシス": f"https://k-tai-iosys.com/buy/search/result/?KEYWORD={compare_jan}",
             "📉 価格.com": f"https://kakaku.com/search_results/{compare_jan}/"
         }
         
@@ -193,7 +240,7 @@ with tab_compare:
             else:
                 col_r.link_button(f"{site} で確認", url, use_container_width=True)
                 
-        st.success("✅ リンクの生成が完了しました。")
+        st.success("✅ 全てのリンクの生成が完了しました。")
     else:
         st.write("👆 上記のボックスに JANコード を入力してください。")
 
