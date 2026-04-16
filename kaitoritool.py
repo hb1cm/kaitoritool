@@ -19,7 +19,7 @@ def check_password():
         # 还没输入过密码
         st.header("🔒 ログイン (Login)")
         st.text_input(
-            "パスワードを入力してください (请输入公司内部密码)", 
+            "パスワードを入力してください", 
             type="password", 
             on_change=password_entered, 
             key="password"
