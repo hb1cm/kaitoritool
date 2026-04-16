@@ -57,46 +57,54 @@ supabase: Client = create_client(url, key)
 
 st.set_page_config(page_title="買取データ分析アシスタント", layout="wide")
 
+# --- 4. 修复版：買取商店 自动抓取函数 (带报错追踪) ---
 def get_shouten_data(jan):
     search_url = "https://www.kaitorishouten-co.jp/products/list/keyword"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        # 模拟 AJAX 请求的关键头
         "X-Requested-With": "XMLHttpRequest",
         "Origin": "https://www.kaitorishouten-co.jp",
         "Referer": "https://www.kaitorishouten-co.jp/"
     }
 
-    # 2. 严格按照你 Payload 截图里的参数来写
+    # 严格改回截图里的参数
     payload = {
-        "page_type": "1",
+        "page_type": "2", 
         "tag_id": "",
         "last_category_id": "",
-        "category_id": "7",  # 先试着传 0 或留空，通常代表全部分类
+        "category_id": "0",  # 传 0 代表全部分类
         "name": jan
     }
 
-
     try:
-        # 关键点：使用 requests.post 发送 Payload
         response = requests.post(search_url, data=payload, headers=headers, timeout=10)
         
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, "html.parser")
-            rows = soup.select("tr.price_list_item") 
+        # 调试点 1：检查状态码
+        if response.status_code != 200:
+            return f"HTTPエラー: {response.status_code} (サーバーに拒否されました)"
             
-            res_list = []
-            for row in rows:
-                cols = row.find_all("td")
-                if len(cols) >= 2:
-                    name = cols[1].get_text(strip=True)
-                    price_tag = row.select_one(".item-price")
-                    price = price_tag.get_text(strip=True) if price_tag else "要相談"
-                    res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
-            return res_list
-        return None
-    except:
-        return None
+        soup = BeautifulSoup(response.text, "html.parser")
+        rows = soup.select("tr.price_list_item") 
+        
+        # 调试点 2：网页连通了，但是没找到商品行
+        if not rows:
+            return "データなし: ページは取得できましたが、商品データが見つかりません"
+            
+        res_list = []
+        for row in rows:
+            cols = row.find_all("td")
+            if len(cols) >= 2:
+                name = cols[1].get_text(strip=True)
+                price_tag = row.select_one(".item-price")
+                price = price_tag.get_text(strip=True) if price_tag else "要相談"
+                res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
+                
+        return res_list
+        
+    except requests.exceptions.Timeout:
+        return "タイムアウト: サーバーの応答が遅すぎます"
+    except Exception as e:
+        return f"通信エラー: {str(e)}"
 
 # --- 顶部导航栏设置 ---
 # 修复点：左侧增加了 tab_compare，确保变量数量与右侧列表一致
@@ -269,12 +277,13 @@ with tab_compare:
         with st.spinner('🏮 買取商店からデータを取得中...'):
             shouten_results = get_shouten_data(compare_jan)
             
-        if shouten_results:
+        # 检查返回值是不是一个列表（也就是成功抓到了数据）
+        if isinstance(shouten_results, list):
             st.subheader("🏮 買取商店 の最新買取価格")
-            # 用 dataframe 展示抓取到的实时数据
             st.dataframe(pd.DataFrame(shouten_results), hide_index=True, use_container_width=True)
         else:
-            st.warning("🏮 買取商店 の自動取得に失敗しました。以下のボタンで直接確認してください。")
+            # 如果不是列表，说明返回的是错误提示文字！直接显示出来！
+            st.warning(f"🏮 買取商店 の自動取得に失敗しました。\n\n**詳細理由：** {shouten_results}")
             st.link_button("🏮 買取商店 で直接検索", f"https://www.kaitorishouten-co.jp/products/list?mode=search&name={compare_jan}")
 
         st.divider()
