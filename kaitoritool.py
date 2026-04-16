@@ -136,7 +136,7 @@ with tab_search:
                 end_date = date_range[1].strftime('%Y-%m-%d 23:59:59')
                 query = query.gte("注文日時", start_date).lte("注文日時", end_date)
             
-            res = query.limit(10000).execute() # 这里的 limit 要足够大
+            res = query.limit(20000).execute() # 这里的 limit 要足够大
             data = pd.DataFrame(res.data)
 
             if not data.empty:
@@ -218,7 +218,7 @@ with tab_search:
 # --- 2. 💰 競合価格比較 (新分页) ---
 with tab_compare:
     st.header("💰 競合価格リアルタイム比較")
-    st.info("💡 JANコードを入力すると、自動で価格を取得し、他サイトへのリンクも生成します。")
+    st.info("💡 JANコードを入力すると、他サイトへのリンクが生成します。")
     
     compare_jan = st.text_input("検索する JANコード を入力してください", placeholder="例: 4549995663167")
     
