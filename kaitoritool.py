@@ -229,7 +229,7 @@ with tab_compare:
         # --- 🌐 他サイトへのクイックリンク ---
         st.write("### 🔗 他サイトの検索リンク")
         links = {
-            "🏮 買取商店": f"https://www.google.com/search?q=site:kaitorishouten-co.jp+{compare_jan}",
+            #"🏮 買取商店": f"https://www.google.com/search?q=site:kaitorishouten-co.jp+{compare_jan}",
             "🌐 買取Wiki": f"https://gamekaitori.jp/search?type=&q={compare_jan}#searchtop",
             "📦 森森買取": f"https://www.morimori-kaitori.jp/search?sk={compare_jan}",
             # "📱 じゃんぱら (Janpara)": f"https://www.janpara.co.jp/buy/search/result/?ORDER=1&KEYWORD={compare_jan}",
