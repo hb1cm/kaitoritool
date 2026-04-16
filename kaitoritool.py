@@ -13,41 +13,47 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="買取データ分析アシスタント", layout="wide")
 
 def get_shouten_data(jan):
-    search_url = "https://www.kaitorishouten-co.jp/products/list"
+    search_url = "https://www.kaitorishouten-co.jp/products/list/keyword"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        # 模拟 AJAX 请求的关键头
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": "https://www.kaitorishouten-co.jp",
         "Referer": "https://www.kaitorishouten-co.jp/"
+    }
+
+    # 2. 严格按照你 Payload 截图里的参数来写
+    payload = {
+        "page_type": "2",
+        "category_id": "0",  # 先试着传 0 或留空，通常代表全部分类
+        "name": jan
     }
     params = {"mode": "search", "name": jan}
 
     try:
-        response = requests.get(search_url, params=params, headers=headers, timeout=10)
+        # 3. 换成 POST 请求！
+        response = requests.post(search_url, data=payload, headers=headers, timeout=10)
         
-        # --- 调试：在网页上直接显示状态 ---
-        st.write(f"调试信息：状态码 = {response.status_code}")
+        # st.write(f"调试：这次的状态码是 {response.status_code}") # 看看是不是变回 200 了
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
-            rows = soup.select("tr.price_list_item") 
-            st.write(f"调试信息：找到商品行数 = {len(rows)}")
+            # 这里的解析逻辑根据你刚才发的 tr.price_list_item 截图来
+            rows = soup.select("tr.price_list_item")
             
-            if not rows:
-                # 如果没找到行，把网页的前 500 个字打印出来看看对方吐了什么
-                st.text("网页内容预览（前500字）：")
-                st.code(response.text[:500])
-                
             res_list = []
             for row in rows:
                 cols = row.find_all("td")
                 if len(cols) >= 2:
                     name = cols[1].get_text(strip=True)
+                    # 查找包含价格的 div
                     price_tag = row.select_one(".item-price")
                     price = price_tag.get_text(strip=True) if price_tag else "要相談"
                     res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
             return res_list
         return None
     except Exception as e:
-        st.error(f"发生异常：{str(e)}")
+        # st.error(f"异常信息: {e}")
         return None
 
     try:
