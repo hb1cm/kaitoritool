@@ -178,7 +178,48 @@ with tab_search:
             st.error("🚨 搜索出错啦！")
             st.code(str(e))
 
-# 2. 数据上传
+# --- 3. 💰 竞品价格比对 (新加的内容) ---
+with tab_compare:
+    st.header("💰 竞品价格实时比对")
+    st.info("💡 输入 JAN 码后，点击下方按钮可直接跳转至各大买取网站的搜索结果页。")
+    
+    # 输入框
+    compare_jan = st.text_input("検索する JANコード を入力してください", placeholder="例: 4549995663167")
+    
+    if compare_jan:
+        st.write(f"### 🎯 検索対象: `{compare_jan}`")
+        
+        # 定义各大网站的搜索跳转链接
+        # 这里的链接是根据各大网站的搜索规则拼凑出来的
+        links = {
+            "🏮 買取商店": f"https://www.kaitorishouten-co.jp/products/list?name={compare_jan}",
+            "🌐 買取Wiki": f"https://www.kaitori-wiki.com/search?q={compare_jan}",
+            "📦 森森買取": f"https://www.mori-mori.jp/search?q={compare_jan}",
+            "📱 じゃんぱら (Janpara)": f"https://www.janpara.co.jp/buy/search/result/?ORDER=1&KEYWORD={compare_jan}",
+            "💻 イオシス (Iosys)": f"https://k-tai-iosys.com/search?q={compare_jan}",
+            "📉 価格.com": f"https://kakaku.com/search_results/{compare_jan}/"
+        }
+        
+        # 使用列布局，让按钮排开，好看又好点
+        col_l, col_r = st.columns(2)
+        
+        # 把按钮均匀分在两列
+        for i, (site, url) in enumerate(links.items()):
+            if i % 2 == 0:
+                col_l.link_button(f"Go to {site}", url, use_container_width=True)
+            else:
+                col_r.link_button(f"Go to {site}", url, use_container_width=True)
+                
+        st.success("✅ 链接已生成！点击上方按钮将在新窗口打开搜索结果。")
+    else:
+        st.write("👆 请在上方输入框输入 JAN 码开始比价。")
+
+
+
+
+
+
+# --- 4. 📦 数据上传 (原本的代码保持不动) ---
 with tab_upload:
     st.header("📦 订单数据上传")
     uploaded_file = st.file_uploader("请选择原始 CSV 文件", type="csv")
