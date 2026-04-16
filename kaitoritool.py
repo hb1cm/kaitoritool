@@ -69,70 +69,33 @@ def get_shouten_data(jan):
 
     # 2. 严格按照你 Payload 截图里的参数来写
     payload = {
-        "page_type": "2",
-        "category_id": "0",  # 先试着传 0 或留空，通常代表全部分类
+        "page_type": "1",
+        "tag_id": "",
+        "last_category_id": "",
+        "category_id": "7",  # 先试着传 0 或留空，通常代表全部分类
         "name": jan
     }
-    params = {"mode": "search", "name": jan}
+
 
     try:
-        # 3. 换成 POST 请求！
+        # 关键点：使用 requests.post 发送 Payload
         response = requests.post(search_url, data=payload, headers=headers, timeout=10)
-        
-        # st.write(f"调试：这次的状态码是 {response.status_code}") # 看看是不是变回 200 了
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, "html.parser")
-            # 这里的解析逻辑根据你刚才发的 tr.price_list_item 截图来
-            rows = soup.select("tr.price_list_item")
+            rows = soup.select("tr.price_list_item") 
             
             res_list = []
             for row in rows:
                 cols = row.find_all("td")
                 if len(cols) >= 2:
                     name = cols[1].get_text(strip=True)
-                    # 查找包含价格的 div
                     price_tag = row.select_one(".item-price")
                     price = price_tag.get_text(strip=True) if price_tag else "要相談"
                     res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
             return res_list
         return None
-    except Exception as e:
-        # st.error(f"异常信息: {e}")
-        return None
-
-    try:
-        response = requests.get(search_url, params=params, headers=headers, timeout=10)
-        
-        # 只要状态码在 200-299 之间，我们都试着解析一下
-        if response.status_code in [200, 202]:
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            # --- 核心修改：匹配你截图里的 class ---
-            # 1. 找到所有的行
-            rows = soup.select("tr.price_list_item") 
-            
-            res_list = []
-            for row in rows:
-                # 2. 提取商品名：通常在第二个 td 里
-                cols = row.find_all("td")
-                if len(cols) >= 2:
-                    # 获取文本并去掉多余的空格和换行
-                    name = cols[1].get_text(strip=True)
-                    
-                    # 3. 提取价格：寻找 class 为 item-price 的 div
-                    price_tag = row.select_one(".item-price")
-                    price = price_tag.get_text(strip=True) if price_tag else "要相談"
-                    
-                    res_list.append({
-                        "ショップ": "買取商店",
-                        "商品名": name,
-                        "買取価格": price
-                    })
-            
-            return res_list if res_list else None
-        return None
-    except Exception as e:
+    except:
         return None
 
 # --- 顶部导航栏设置 ---
