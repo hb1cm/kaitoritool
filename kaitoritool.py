@@ -13,33 +13,45 @@ supabase: Client = create_client(url, key)
 st.set_page_config(page_title="買取データ分析アシスタント", layout="wide")
 
 def get_shouten_data(jan):
-    """
-    買取商店のサイトから直接データを取得する関数
-    """
     search_url = "https://www.kaitorishouten-co.jp/products/list"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Referer": "https://www.kaitorishouten-co.jp/"
     }
-    # 这里的 mode=search 是破解 404 的关键
     params = {"mode": "search", "name": jan}
 
     try:
         response = requests.get(search_url, params=params, headers=headers, timeout=10)
-        if response.status_code == 200:
+        
+        # 只要状态码在 200-299 之间，我们都试着解析一下
+        if response.status_code in [200, 202]:
             soup = BeautifulSoup(response.text, "html.parser")
-            products = soup.select(".product-item") # 查找商品块
+            
+            # --- 核心修改：匹配你截图里的 class ---
+            # 1. 找到所有的行
+            rows = soup.select("tr.price_list_item") 
             
             res_list = []
-            for p in products:
-                name = p.select_one(".name").get_text(strip=True) if p.select_one(".name") else "不明"
-                # 尝试抓取价格标签
-                price_tag = p.select_one(".price_val") or p.select_one(".price")
-                price = price_tag.get_text(strip=True) if price_tag else "要相談"
-                res_list.append({"ショップ": "買取商店", "商品名": name, "買取価格": price})
-            return res_list
+            for row in rows:
+                # 2. 提取商品名：通常在第二个 td 里
+                cols = row.find_all("td")
+                if len(cols) >= 2:
+                    # 获取文本并去掉多余的空格和换行
+                    name = cols[1].get_text(strip=True)
+                    
+                    # 3. 提取价格：寻找 class 为 item-price 的 div
+                    price_tag = row.select_one(".item-price")
+                    price = price_tag.get_text(strip=True) if price_tag else "要相談"
+                    
+                    res_list.append({
+                        "ショップ": "買取商店",
+                        "商品名": name,
+                        "買取価格": price
+                    })
+            
+            return res_list if res_list else None
         return None
-    except:
+    except Exception as e:
         return None
 
 # --- 顶部导航栏设置 ---
