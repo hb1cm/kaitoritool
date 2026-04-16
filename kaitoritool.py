@@ -168,15 +168,27 @@ with tab_upload:
             '商品コード': str
         }
         
-        try:
-            # 读取时加入 dtype 参数
-            df = pd.read_csv(uploaded_file, encoding='shift_jis', dtype=column_types)
-        except:
-            df = pd.read_csv(uploaded_file, encoding='utf-8', dtype=column_types)
+        # --- 核心修改：多编码自动识别 ---
+        df = None
+        # 依次尝试：带BOM的UTF-8, 日本Windows专用编码, 标准日文编码, 普通UTF-8
+        for enc in ['utf-8-sig', 'cp932', 'shift_jis', 'utf-8']:
+            try:
+                # 每次尝试前都要把文件指针重置到开头
+                uploaded_file.seek(0) 
+                df = pd.read_csv(uploaded_file, encoding=enc, dtype=column_types)
+                break # 如果读取成功，就跳出循环
+            except:
+                continue
         
-        df = df.fillna('')
-            
+        # 如果循环结束 df 还是 None，说明全部失败了
+        if df is None:
+            st.error("🚨 CSV 编码解析失败！请尝试用 Excel 将文件“另存为”并选择“CSV UTF-8”格式。")
+            st.stop() # 报错后停止运行，防止下面代码崩溃
+        
+        # 成功读取后的处理
+        df = df.fillna('') # 补齐空值
         st.write("预览上传的数据：", df.head())
+
         
         if st.button("🚀 一键同步到数据库"):
             # 准备数据
