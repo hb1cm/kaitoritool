@@ -27,6 +27,7 @@ with tab_search:
         "販売一丁目 Yahoo！ショッピング店",
         "販売一丁目 Qoo10店",
         "ニューライフ"
+        "販売一丁目 Wowma店"
     ]
     
     # --- 搜索过滤器布局 ---
@@ -34,8 +35,31 @@ with tab_search:
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            # 日期区间选择（默认空）
-            date_range = st.date_input("注文日時区间", value=[], help="请选择开始和结束日期")
+            # --- 1. 这里是日语的快捷选项 ---
+            date_presets = {
+                "指定なし": None,
+                "過去1週間": 7,
+                "過去1ヶ月": 30,
+                "過去3ヶ月": 90,
+                "過去1年": 365
+            }
+            
+            # 快捷下拉框
+            selected_preset = st.selectbox("期間（プリセット）", options=list(date_presets.keys()))
+
+            # 根据选择计算默认日期
+            default_date = []
+            if selected_preset != "指定なし":
+                end_date = datetime.date.today()
+                start_date = end_date - datetime.timedelta(days=date_presets[selected_preset])
+                default_date = [start_date, end_date]
+
+            # --- 2. 原本的日期选择器（日语化，并接收快捷选中的值） ---
+            date_range = st.date_input(
+                "注文日時期間（手動）",
+                value=default_date, # 这里会自动填入快捷选中的日期
+                help="開始日と終了日を選択してください"
+            )
             
         with col2:
             # JAN / 商品码 搜索
