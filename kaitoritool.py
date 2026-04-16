@@ -2,8 +2,53 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client, Client
 import datetime
-import requests  # 新增：用于发送网络请求
-from bs4 import BeautifulSoup  # 新增：用于解析网页内容
+import requests
+from bs4 import BeautifulSoup
+
+# --- 1. 初始化密码与安全检查 ---
+def check_password():
+    """如果密码正确则返回 True，否则显示输入框并返回 False"""
+    def password_entered():
+        if st.session_state["password"] == st.secrets["APP_PASSWORD"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # 不在 session 中保留密码原件
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # 还没输入过密码
+        st.header("🔒 ログイン (Login)")
+        st.text_input(
+            "パスワードを入力してください (请输入公司内部密码)", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        return False
+    elif not st.session_state["password_correct"]:
+        # 密码输错了
+        st.header("🔒 ログイン (Login)")
+        st.text_input(
+            "パスワードを入力してください (请输入公司内部密码)", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("❌ パスワードが違います (密码错误)")
+        return False
+    else:
+        # 密码正确
+        return True
+
+# --- 2. 如果密码检查不通过，直接停止运行 ---
+if not check_password():
+    st.stop()
+
+# ==========================================
+# 只要运行到这里，说明用户已经登录成功了！
+# ==========================================
+
+
 
 # --- 初始化 Supabase 连接 ---
 url = st.secrets["SUPABASE_URL"]
