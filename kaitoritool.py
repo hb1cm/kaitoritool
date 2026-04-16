@@ -136,7 +136,7 @@ with tab_search:
                 end_date = date_range[1].strftime('%Y-%m-%d 23:59:59')
                 query = query.gte("注文日時", start_date).lte("注文日時", end_date)
             
-            res = query.limit(2000).execute()
+            res = query.limit(5000).execute() # 这里的 limit 要足够大
             data = pd.DataFrame(res.data)
 
             if not data.empty:
