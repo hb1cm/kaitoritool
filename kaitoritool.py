@@ -12,7 +12,7 @@ st.set_page_config(page_title="買取数据分析助手", layout="wide")
 
 # --- 顶部导航栏设置 ---
 # 把“销售分析搜索”放在第一个，它就会成为默认打开的页面
-tab_search, tab_upload = st.tabs(["🔍 销售详情搜索", "📦 数据上传"])
+tab_search, tab_upload = st.tabs(["🔍 销售详情搜索", "💰 竞品价格实时比对", "📦 数据上传"])
 
 # 1. 销售分析搜索 (默认页面)
 with tab_search:
