@@ -180,9 +180,9 @@ with tab_compare:
         links = {
             "🏮 買取商店": f"https://www.kaitorishouten-co.jp/products/list?name={compare_jan}",
             "🌐 買取Wiki": f"https://gamekaitori.jp/search?type=&q={compare_jan}#searchtop",
-            "📦 森森買取": f"https://www.mori-mori.jp/search?q={compare_jan}",
-            "📱 じゃんぱら (Janpara)": f"https://www.janpara.co.jp/buy/search/result/?ORDER=1&KEYWORD={compare_jan}",
-            "💻 イオシス (Iosys)": f"https://k-tai-iosys.com/search?q={compare_jan}",
+            "📦 森森買取": f"https://www.morimori-kaitori.jp/search?sk={compare_jan}",
+            # "📱 じゃんぱら (Janpara)": f"https://www.janpara.co.jp/buy/search/result/?ORDER=1&KEYWORD={compare_jan}",
+            # "💻 イオシス (Iosys)": f"https://k-tai-iosys.com/search?q={compare_jan}",
             "📉 価格.com": f"https://kakaku.com/search_results/{compare_jan}/"
         }
         
