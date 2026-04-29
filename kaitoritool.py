@@ -252,11 +252,30 @@ with tab_compare:
 # --- 3. 📦 数据上传 ---
 with tab_upload:
     st.header("📦 データアップロード")
+    
+    # --- 新增：显示最近的上传记录 ---
+    with st.expander("📜 最近のアップロード履歴を確認する", expanded=False):
+        try:
+            # 从新表里读取最近 10 条记录
+            history_res = supabase.table("upload_log").select("*").order("created_at", desc=True).limit(10).execute()
+            if history_res.data:
+                history_df = pd.DataFrame(history_res.data)
+                # 格式化一下时间，让它更好看[cite: 2]
+                history_df['created_at'] = pd.to_datetime(history_df['created_at']).dt.strftime('%Y-%m-%d %H:%M')
+                history_df = history_df.rename(columns={'created_at': 'アップロード日時', 'filename': 'ファイル名', 'row_count': '件数'})
+                st.table(history_df[['アップロード日時', 'ファイル名', '件数']])
+            else:
+                st.write("履歴がありません。")
+        except:
+            st.write("履歴の取得に失敗しました。")
+
+    st.divider()
+
     uploaded_file = st.file_uploader("CSVファイルを選択してください", type="csv")
     
     if uploaded_file is not None:
+        # (这部分读取 CSV 的逻辑保持不变[cite: 2])
         column_types = {'管理番号': str, 'JANコード': str, '商品コード': str}
-        
         df = None
         for enc in ['utf-8-sig', 'cp932', 'shift_jis', 'utf-8']:
             try:
@@ -267,11 +286,11 @@ with tab_upload:
                 continue
         
         if df is None:
-            st.error("🚨 CSVファイルの読み込みに失敗しました。文字コードを確認してください。")
+            st.error("🚨 CSVファイルの読み込みに失敗しました。")
             st.stop()
         
         df = df.fillna('')
-        st.write("アップロードデータのプレビュー：", df.head())
+        st.write(f"アップロードデータのプレビュー ({len(df)} 件)：", df.head())
 
         if st.button("🚀 データベースへ同期"):
             rows = df.to_dict('records')
@@ -285,7 +304,7 @@ with tab_upload:
             for i in range(0, total_rows, batch_size):
                 batch = rows[i : i + batch_size]
                 try:
-                    supabase.table("order").insert(batch).execute()
+                    supabase.table("order").insert(batch).execute() #[cite: 2]
                     current_progress = min((i + batch_size) / total_rows, 1.0)
                     progress_bar.progress(current_progress)
                     status_text.text(f"同期中：{min(i + batch_size, total_rows)} / {total_rows} 件...")
@@ -295,6 +314,18 @@ with tab_upload:
                     break
             
             if success:
+                # --- ✨ 核心新增：同步成功后，记录这次战果！ ---
+                try:
+                    supabase.table("upload_log").insert({
+                        "filename": uploaded_file.name,
+                        "row_count": total_rows
+                    }).execute()
+                except:
+                    st.warning("⚠️ データの同期は成功しましたが、履歴の保存に失敗しました。")
+
                 progress_bar.empty()
                 status_text.text("✅ データの同期が完了しました！")
                 st.balloons()
+                
+                # 刷新一下页面，让新记录显示出来
+                st.rerun()
